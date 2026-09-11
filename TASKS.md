@@ -21,3 +21,10 @@
 - Tests: tests/test_ui.py, offscreen 실행, lint/format/type check, EXE 빌드.
 - Dependencies: T1, T2.
 - 수동 검증: 실제 Google 동의·동기화, 재부팅 자동 실행, Explorer 재시작, Win+D, 모니터 변경은 실제 사용자 Windows 세션에서 확인 필요.
+
+## T4 — 캐시 트랜잭션 검증
+- Goal / Reason: 명세의 events 스키마와 일정 ID 중복 방지, 실패 시 원자적 복원 보장.
+- Scope: EventRepository 및 저장 안전성 테스트.
+- Acceptance Criteria: 범위·캘린더·일정 복합 키, 중복 삽입 실패 시 기존 데이터/동기화 시간 보존, 로그아웃 시 모든 범위 제거.
+- Tests: tests/test_storage_safety.py; 중복 일정 테스트 RED 확인 후 정규화 스키마 구현.
+- Dependencies: T1.
