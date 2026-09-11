@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "desktop-calendar"
+version = "0.1.0"
+description = "Windows desktop Google Calendar widget"
+requires-python = ">=3.12"
+dependencies = ["PySide6>=6.8,<7", "google-api-python-client>=2.160,<3", "google-auth-oauthlib>=1.2,<2", "keyring>=25,<26", "tzdata>=2025.1", "tzlocal>=5,<6"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.11", "pyright>=1.1", "pyinstaller>=6"]
+
+[project.gui-scripts]
+desktop-calendar = "desktop_calendar.main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.pyright]
+include = ["src"]
+venvPath = "."
+venv = ".venv"
+typeCheckingMode = "basic"
