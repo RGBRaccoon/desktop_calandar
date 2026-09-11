@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "source_repo": "RGBRaccoon/dev-agent-standard",
+  "source_sha": "116d51a19e5ad89f831bb6f16ae64e08734ac722",
+  "managed_files": {
+    "AGENTS.md": "9aebce0221045f1b0a068fc8735882ee420dc71b493c0eb727d6fe1ed2b979a4",
+    "CLAUDE.md": "de3fe76231f51bffba163106f861e632435e446f8d6e29205b48d831dd2ba377",
+    "TASK_TEMPLATE.md": "4f6d0de406042452aec1b8f4772cc8b8c69aad8e10b443510f1da6aa100c6552",
+    ".github/workflows/validate-agent-rules.yml": "6be867fec18964aebe57fe38ed5c137430e744a13992dc880c2e26c4fb6838ab"
+  }
+}
