@@ -1,5 +1,13 @@
 # v0.1 구현 작업
 
+## T5 — 배포용 Google 로그인 및 단일 EXE
+- Goal / Reason: 최종 사용자가 OAuth JSON을 선택하지 않고 Google 로그인만 수행.
+- Scope: 내장 Desktop OAuth 설정 탐색/검증, 설정 UI, onefile 배포 spec, 배포 안내.
+- Acceptance Criteria: 내장 설정 자동 사용, JSON UI 제거, 잘못된/누락 설정은 로그인 전에 안내, 설정 없는 배포 빌드 차단.
+- Tests: tests/test_distribution.py 및 전체 회귀/lint/format/type 검사.
+- Dependencies: Google Cloud Desktop OAuth JSON은 앱 소유자가 발급해야 함. 현재 없음. 실제 인증 포함 EXE 생성과 계정 로그인은 파일 제공 후 검증.
+- 검증: 미구현 모듈 RED → 26개 전체 테스트 통과. 누락 설정으로 release spec 실행 시 종료 코드 1로 빌드 차단 확인. 소스/UI 준비 완료, 실제 배포 EXE는 JSON 발급 대기.
+
 ## T1 — 일정 모델·설정·캐시
 - Goal / Reason: 오프라인 표시와 안전한 설정 복원을 위한 기반 구현.
 - Scope: models, repositories, settings; Google/GUI 제외.

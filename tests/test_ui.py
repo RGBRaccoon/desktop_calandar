@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 
 from PySide6.QtCore import QElapsedTimer
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QPushButton
 
 from desktop_calendar.models.event import Event
 from desktop_calendar.repositories.event_repository import EventRepository
@@ -84,6 +84,8 @@ def test_settings_can_select_no_calendars(tmp_path):
     config["calendars"] = [{"id": "a", "summary": "내 일정"}]
     config["calendar_ids"] = []
     dialog = SettingsDialog(config)
+    assert not hasattr(dialog, "client_file")
+    assert any("Google 로그인" in button.text() for button in dialog.findChildren(QPushButton))
     dialog.finish("save")
     assert dialog.config["calendar_ids"] == []
     dialog.close()

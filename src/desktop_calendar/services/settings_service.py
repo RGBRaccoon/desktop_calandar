@@ -15,7 +15,6 @@ DEFAULTS = {
     "startup": False,
     "calendar_ids": None,
     "calendars": [],
-    "client_file": "",
 }
 
 
@@ -62,7 +61,7 @@ class SettingsService:
             config["theme"] = "dark"
         if config["first_weekday"] not in (0, 6):
             config["first_weekday"] = 0
-        for key in ("client_file", "background"):
+        for key in ("background",):
             if not isinstance(config[key], str):
                 config[key] = ""
         if not isinstance(config["calendars"], list):

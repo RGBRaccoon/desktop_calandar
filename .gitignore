@@ -4,8 +4,10 @@ __pycache__/
 .ruff_cache/
 build/
 dist/
+release/
 *.egg-info/
 *.db
 client_secret*.json
 token*.json
+oauth_client.json
 .local/

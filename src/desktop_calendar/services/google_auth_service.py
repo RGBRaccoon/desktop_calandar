@@ -8,6 +8,8 @@ from google_auth_httplib2 import AuthorizedHttp
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
+from desktop_calendar.services.oauth_config import load_client_config
+
 SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
 
 
@@ -42,9 +44,9 @@ class GoogleAuthService:
             self.store.save(json.loads(credentials.to_json()))
         return credentials
 
-    def login(self, client_file: str):
-        flow = InstalledAppFlow.from_client_secrets_file(
-            client_file, SCOPES, autogenerate_code_verifier=True
+    def login(self):
+        flow = InstalledAppFlow.from_client_config(
+            load_client_config(), SCOPES, autogenerate_code_verifier=True
         )
         credentials = flow.run_local_server(
             host="127.0.0.1",

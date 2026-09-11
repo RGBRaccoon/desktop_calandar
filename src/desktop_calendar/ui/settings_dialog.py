@@ -8,11 +8,9 @@ from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QDoubleSpinBox,
-    QFileDialog,
     QFormLayout,
     QHBoxLayout,
     QLabel,
-    QLineEdit,
     QListWidget,
     QListWidgetItem,
     QPushButton,
@@ -69,12 +67,9 @@ class SettingsDialog(QDialog):
         form.addRow("날짜별 일정 수", self.limit)
         layout.addLayout(form)
         layout.addWidget(QLabel("Google Calendar · 읽기 전용"))
-        self.client_file = QLineEdit(config["client_file"])
-        self.client_file.setPlaceholderText("Google Desktop OAuth 인증 JSON")
-        layout.addWidget(self.client_file)
-        browse = QPushButton("인증 JSON 선택…")
-        browse.clicked.connect(self.browse)
-        layout.addWidget(browse)
+        description = QLabel("Google 로그인 후 표시할 캘린더를 선택하세요.")
+        description.setWordWrap(True)
+        layout.addWidget(description)
         self.calendars = QListWidget()
         selected = config["calendar_ids"]
         for calendar in config["calendars"]:
@@ -88,7 +83,7 @@ class SettingsDialog(QDialog):
             )
             self.calendars.addItem(item)
         layout.addWidget(self.calendars)
-        login = QPushButton("Google 연결 / 다시 로그인")
+        login = QPushButton("Google 로그인 / 계정 변경")
         login.clicked.connect(lambda: self.finish("login"))
         logout = QPushButton("로그아웃 · 이 PC의 일정 캐시 삭제")
         logout.clicked.connect(lambda: self.finish("logout"))
@@ -106,11 +101,6 @@ class SettingsDialog(QDialog):
         if color.isValid():
             self.config["background"] = color.name()
 
-    def browse(self):
-        path, _ = QFileDialog.getOpenFileName(self, "Desktop OAuth 인증 JSON", "", "JSON (*.json)")
-        if path:
-            self.client_file.setText(path)
-
     def finish(self, action):
         self.action = action
         self.config.update(
@@ -120,7 +110,6 @@ class SettingsDialog(QDialog):
             theme="dark" if self.theme.currentIndex() == 0 else "light",
             font_size=self.font_size.value(),
             event_limit=self.limit.value(),
-            client_file=self.client_file.text().strip(),
         )
         self.config["window"]["opacity"] = self.opacity.value()
         if self.calendars.count():

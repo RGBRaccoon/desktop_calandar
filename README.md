@@ -4,7 +4,9 @@ Windows 10/11용 Google Calendar 읽기 전용 바탕화면 위젯입니다. 별
 
 ## 실행
 
-`dist/DesktopCalendar/DesktopCalendar.exe`를 실행하세요. `_internal` 폴더가 필요하므로 배포할 때는 `DesktopCalendar` 폴더 전체를 복사합니다.
+배포 빌드는 `release/DesktopCalendar.exe` 하나로 실행합니다. Python 설치가 필요하지 않습니다. 시작할 때 내부 라이브러리를 임시 폴더에 풀기 때문에 첫 실행은 잠시 걸릴 수 있습니다.
+
+**현재 배포 상태:** 앱 소유자의 OAuth JSON이 아직 없어 인증 포함 배포 EXE는 생성하지 않았습니다. 기존 `dist/DesktopCalendar/DesktopCalendar.exe`는 이전 개발 빌드로, JSON을 직접 선택하는 화면이 남아 있습니다.
 
 소스 실행 (PowerShell, 프로젝트 폴더):
 
@@ -16,15 +18,25 @@ python -m venv .venv
 
 설치 후 `launch.cmd`로 콘솔 없이 실행할 수 있습니다. Python 3.12 이상이 필요하며 이 PC에서는 Python 3.13.9 / PySide6 6.8.3으로 검증했습니다. PySide6는 검증된 버전으로 고정했습니다.
 
-## Google 연결
+## 사용자 Google 연결
+
+배포 EXE에서 **설정 → Google 로그인 / 계정 변경**을 누르고, 브라우저에서 Google 로그인과 Calendar 읽기 권한 동의를 완료하면 됩니다. 사용자에게 JSON 파일을 요구하지 않습니다.
+
+## 배포자가 한 번 할 설정
 
 1. [Google Cloud Console](https://console.cloud.google.com/)에서 프로젝트를 만들고 **Google Calendar API**를 활성화합니다.
 2. Google Auth Platform에서 동의 화면을 구성합니다. 개인 테스트 앱은 본인 계정을 테스트 사용자에 추가합니다.
 3. OAuth 클라이언트를 **데스크톱 앱** 유형으로 생성하고 JSON을 다운로드합니다.
-4. 위젯의 **설정 → 인증 JSON 선택 → Google 연결 / 다시 로그인**을 누릅니다.
-5. 시스템 브라우저에서 로그인하고 Calendar 읽기 권한에 동의합니다. 이후 설정에서 표시할 캘린더를 선택합니다.
+4. JSON을 `src/desktop_calendar/resources/oauth_client.json`으로 저장합니다. Git에서는 제외됩니다.
+5. 아래 명령으로 인증 설정을 포함하는 단일 EXE를 만듭니다.
 
-인증 JSON은 사용자가 지정한 경로에서 읽으며 저장소나 배포 파일에 포함하지 않습니다. OAuth 토큰은 파일·SQLite·로그에 저장하지 않습니다. `keyring`의 Windows 백엔드를 명시하여 **Windows 자격 증명 관리자 / DesktopCalendar / google_oauth_token**에만 저장합니다. 인증 콜백에는 로그인 중에만 동작하는 PC 내부 loopback 주소를 사용합니다.
+```powershell
+.venv/Scripts/python -m PyInstaller --noconfirm --distpath release DesktopCalendar-release.spec
+```
+
+클라이언트 설정이 없거나 웹/서비스 계정 유형이면 빌드를 중단합니다. 개인 Google 계정은 동의 화면의 대상 사용자를 External로 구성하고, 테스트 단계에서는 본인 이메일을 테스트 사용자에 추가하세요. 불특정 사용자에게 공개할 때는 배포 상태와 요청 권한에 따른 Google 검증 절차를 별도로 완료해야 할 수 있습니다. [Google 공식 등록 안내](https://developers.google.com/workspace/calendar/api/quickstart/python), [공개 앱 권한 검증](https://developers.google.com/identity/protocols/oauth2/production-readiness/sensitive-scope-verification).
+
+데스크톱 OAuth 앱 등록 정보는 EXE에 포함합니다. 데스크톱 앱은 클라이언트 설정을 숨길 수 없는 public client이며 PKCE와 시스템 브라우저를 사용합니다. 사용자 OAuth 토큰은 배포 파일·SQLite·로그에 저장하지 않습니다. `keyring`의 Windows 백엔드를 명시하여 **Windows 자격 증명 관리자 / DesktopCalendar / google_oauth_token**에만 저장합니다. 인증 콜백에는 로그인 중에만 동작하는 PC 내부 loopback 주소를 사용합니다.
 
 액세스 토큰은 자동 갱신하며 갱신 권한이 취소되면 재로그인을 안내합니다. 테스트 모드 앱의 인증 수명 등 Google 정책은 [데스크톱 OAuth 공식 문서](https://developers.google.com/identity/protocols/oauth2/native-app)를 확인하세요. 로그인 브라우저를 닫으면 최대 2분 후 대기가 끝납니다.
 

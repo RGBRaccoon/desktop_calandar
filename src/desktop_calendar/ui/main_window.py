@@ -1,7 +1,6 @@
 import logging
 import sqlite3
 from datetime import date, datetime
-from pathlib import Path
 
 from PySide6.QtCore import QEvent, Qt, QThread, QTimer, Signal
 from PySide6.QtGui import QColor, QFont, QIcon, QPainter, QPixmap
@@ -25,6 +24,7 @@ from desktop_calendar.infrastructure.windows_api import fit_geometry, lower_wind
 from desktop_calendar.models.event import visible_dates
 from desktop_calendar.services.calendar_service import GoogleCalendarService
 from desktop_calendar.services.google_auth_service import LoginRequired
+from desktop_calendar.services.oauth_config import OAuthConfigurationError, load_client_config
 from desktop_calendar.services.startup_service import StartupService
 from desktop_calendar.services.sync_service import SyncService
 from desktop_calendar.ui.calendar_widget import CalendarWidget
@@ -57,7 +57,7 @@ class TaskThread(QThread):
     def run(self):
         try:
             self.succeeded.emit(self.task())
-        except LoginRequired as error:
+        except (LoginRequired, OAuthConfigurationError) as error:
             self.failed.emit(str(error))
         except Exception as error:  # noqa: BLE001 -- worker boundary; redact third-party exception data
             # Never log exception text/tracebacks: HTTP errors can contain private data.
@@ -323,16 +323,17 @@ class MainWindow(QWidget):
         self.sync_timer.start(self.config["sync_minutes"] * 60000)
         self.render()
         if dialog.action == "login":
-            if not Path(self.config["client_file"]).is_file():
-                self.status.setText("설정에서 Google Desktop OAuth 인증 JSON 파일을 선택하세요.")
+            try:
+                load_client_config()
+            except OAuthConfigurationError as error:
+                self.status.setText(str(error))
                 return
-            client_file = self.config["client_file"]
 
             def login():
                 # Forget the old identity before displaying a different account's data.
                 self.auth.logout()
                 self.repository.clear()
-                self.auth.login(client_file)
+                self.auth.login()
 
             self.config["calendars"] = []
             self.config["calendar_ids"] = None
