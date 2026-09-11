@@ -1,5 +1,13 @@
 # v0.1 구현 작업
 
+## T6 — 인증 포함 단일 EXE 배포 빌드
+- Goal / Reason: 앱 소유자가 제공한 Desktop OAuth 등록 설정을 포함한 독립 실행 파일 제공.
+- Scope: Git 제외 리소스 설정, release spec 빌드, 아카이브/실행 검증 및 배포 상태 문서.
+- Acceptance Criteria: 제공된 설정과 EXE 내 설정 일치, 단일 EXE 실행·정상 종료, 사용자 토큰 미포함.
+- Tests: 전체 pytest 26개, Ruff lint/format, Pyright 통과. EXE 아카이브 설정 비교 통과. Windows smoke-test 종료 코드 0 및 화면 확인.
+- Dependencies: T5 및 앱 소유자가 제공한 Desktop OAuth JSON.
+- 결과: release/DesktopCalendar.exe 생성 완료. 실제 Google 로그인·권한 동의·Calendar API 접근은 사용자 계정에서 확인 필요.
+
 ## T5 — 배포용 Google 로그인 및 단일 EXE
 - Goal / Reason: 최종 사용자가 OAuth JSON을 선택하지 않고 Google 로그인만 수행.
 - Scope: 내장 Desktop OAuth 설정 탐색/검증, 설정 UI, onefile 배포 spec, 배포 안내.
