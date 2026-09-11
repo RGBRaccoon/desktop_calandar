@@ -14,6 +14,15 @@
 - Tests: tests/test_services.py (가짜 Google/자격증명으로 외부 계정 없이 검증).
 - Dependencies: T1.
 
+## 검증 기록
+- T1: 신규 테스트 수집 실패(미구현) 확인 → 모델/설정/캐시 구현 → 6개 통과.
+- T2: 신규 서비스 미구현 실패 확인 → 인증/API/Windows 서비스 구현 → 누적 12개 통과.
+- T3: UI 미구현 단계 검증 중 Qt 6.11 DLL 호환 실패 발견 → PySide6 6.8.3 고정 → UI/비동기 오류/월 이동/설정 테스트 통과.
+- T4: 중복 이벤트 삽입 시 예외 미발생 RED 확인 → 복합 키·트랜잭션 구현 → 롤백/손상 복구/전체 캐시 삭제 통과.
+- 전체: pytest 19개 통과, Ruff lint/format 및 Pyright 오류 없음.
+- Windows 네이티브 창 생성, 일정 포함 화면, 설정 화면 렌더링 확인. PyInstaller EXE 빌드 및 smoke-test 정상 종료.
+- 외부 확인 필요: 실제 Google 계정 동의·일정 조회, 재부팅 자동 실행, Explorer/절전/모니터 변경. 자격 증명과 사용자 로그인 없이 해당 항목은 완료로 표시하지 않음.
+
 ## T3 — 위젯·설정·트레이·배포
 - Goal / Reason: 명세의 실제 사용자 흐름 제공.
 - Scope: Qt UI, 비동기 작업, 진입점, 문서, PyInstaller.

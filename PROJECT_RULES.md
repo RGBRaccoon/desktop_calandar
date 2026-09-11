@@ -5,26 +5,27 @@
 
 ## Project Context
 
-- 프로젝트 목적:
-- 주요 기술 스택:
-- 주요 실행 명령:
+- 프로젝트 목적: Windows용 읽기 전용 Google Calendar 위젯.
+- 주요 기술 스택: Python 3.12+, PySide6, SQLite, Windows Credential Manager.
+- 주요 실행 명령: `.venv/Scripts/python -m desktop_calendar`
 
 ## Validation Commands
 
 프로젝트에서 실제 사용하는 명령만 남긴다.
 
 ```bash
-# example
-pytest
-ruff check .
-ruff format --check .
-pyright
+.venv/Scripts/python -m pytest -q
+.venv/Scripts/python -m ruff check src tests run.py
+.venv/Scripts/python -m ruff format --check src tests run.py
+.venv/Scripts/python -m pyright
 ```
 
 ## Architecture Constraints
 
-- 프로젝트에서 지켜야 할 아키텍처 경계와 의존성 규칙을 작성한다.
+- UI는 Google API를 직접 호출하지 않는다. 네트워크 작업은 QThread에서 수행한다.
+- CredentialStore는 Windows 백엔드만 사용한다. 토큰을 파일·DB·로그에 기록하지 않는다.
+- 캐시는 모든 API 페이지 조회 성공 후 트랜잭션으로 교체한다.
 
 ## Additional Rules
 
-- 프로젝트에서만 필요한 규칙을 작성한다.
+- 실제 Google 계정 및 Windows 세션 테스트와 자동 테스트 결과를 구분한다.
