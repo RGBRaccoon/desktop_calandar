@@ -11,6 +11,7 @@ from PySide6.QtWidgets import QApplication, QMessageBox, QWidget
 from desktop_calendar.infrastructure.credential_store import CredentialStore
 from desktop_calendar.repositories.event_repository import EventRepository
 from desktop_calendar.services.google_auth_service import GoogleAuthService
+from desktop_calendar.services.oauth_config import load_client_config
 from desktop_calendar.services.settings_service import SettingsService
 from desktop_calendar.ui.main_window import MainWindow
 
@@ -22,6 +23,9 @@ def main():
         "--smoke-test", action="store_true", help="네트워크 없이 창을 열고 자동 종료"
     )
     parser.add_argument("--screenshot", type=Path, help="smoke-test 화면 저장 경로")
+    parser.add_argument(
+        "--require-oauth", action="store_true", help="배포 검증 시 내장 인증 설정 확인"
+    )
     args = parser.parse_args()
     app = QApplication(sys.argv[:1])
     app.setApplicationName("DesktopCalendar")
@@ -51,6 +55,8 @@ def main():
     logging.getLogger().addHandler(logging.NullHandler())
     logger.info("Application Start")
     try:
+        if args.require_oauth:
+            load_client_config()
         window = MainWindow(
             SettingsService(config_dir / "config.json"),
             EventRepository(data_dir / "calendar.db"),
@@ -59,6 +65,8 @@ def main():
         )
     except Exception as error:  # noqa: BLE001 -- startup boundary; do not disclose credential errors
         logger.error("Initialization failed: %s", type(error).__name__)
+        if args.smoke_test:
+            return 1
         QMessageBox.critical(
             QWidget(),
             "Desktop Calendar",
@@ -69,9 +77,20 @@ def main():
     if args.smoke_test:
 
         def finish():
-            if args.screenshot:
-                args.screenshot.parent.mkdir(parents=True, exist_ok=True)
-                window.grab().save(str(args.screenshot))
+            from desktop_calendar.ui.smoke_check import check_interactions
+
+            try:
+                check_interactions(window)
+                if args.screenshot:
+                    args.screenshot.parent.mkdir(parents=True, exist_ok=True)
+                    if not window.grab().save(str(args.screenshot)):
+                        raise OSError("Screenshot write failed")
+                logger.info("Smoke interactions passed")
+            except Exception as error:  # noqa: BLE001 -- self-test reports failure via process status
+                logger.error("Smoke interactions failed: %s", type(error).__name__)
+                window.tray.hide()
+                app.exit(1)
+                return
             window.quit_app()
 
         QTimer.singleShot(1200, finish)

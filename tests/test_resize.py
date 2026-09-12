@@ -74,7 +74,9 @@ def test_drag_size_is_saved_and_restored(window, app):
     assert saved["height"] == window.height() == 680
     restored = MainWindow(window.settings, window.repository, Mock(), auto_sync=False)
     try:
-        assert restored.height() == 680
+        # A small/high-DPI CI desktop must apply the app's monitor recovery policy.
+        screen_height = app.primaryScreen().availableGeometry().height()
+        assert restored.height() == min(680, screen_height)
     finally:
         restored.tray.hide()
         restored.quitting = True

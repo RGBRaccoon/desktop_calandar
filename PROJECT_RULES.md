@@ -15,8 +15,8 @@
 
 ```bash
 .venv/Scripts/python -m pytest -q
-.venv/Scripts/python -m ruff check src tests run.py
-.venv/Scripts/python -m ruff format --check src tests run.py
+.venv/Scripts/python -m ruff check src tests scripts run.py
+.venv/Scripts/python -m ruff format --check src tests scripts run.py
 .venv/Scripts/python -m pyright
 ```
 
@@ -29,3 +29,5 @@
 ## Additional Rules
 
 - 실제 Google 계정 및 Windows 세션 테스트와 자동 테스트 결과를 구분한다.
+- `scripts/validate.ps1`이 로컬/CI 공통 검증 명령이다. Windows CI는 QT_QPA_PLATFORM=windows 및 배율 1/1.5를 사용한다.
+- 배포 EXE는 scripts/verify_executable.py로 창 복원·버튼·드래그·설정 및 저장을 검증한 후 제공한다.

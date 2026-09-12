@@ -1,0 +1,127 @@
+name: Windows calendar validation and packaging
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      build_release:
+        description: Build OAuth-enabled distribution artifact
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.12', '3.13']
+        scale: ['1', '1.5']
+    env:
+      QT_QPA_PLATFORM: windows
+      QT_SCALE_FACTOR: ${{ matrix.scale }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install isolated dependencies
+        shell: pwsh
+        run: |
+          python -m venv .venv
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          .venv/Scripts/python -m pip install -e '.[dev]'
+      - name: Lint, types and native Windows UI tests
+        shell: pwsh
+        run: ./scripts/validate.ps1
+      - name: Offline application interaction check
+        shell: pwsh
+        run: .venv/Scripts/python -m desktop_calendar --smoke-test --data-dir .local/source-smoke --screenshot .local/source-smoke/calendar.png
+      - name: Upload test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tests-py${{ matrix.python }}-scale${{ matrix.scale }}
+          path: |
+            .local/test-results.xml
+            .local/source-smoke/calendar.png
+            .local/source-smoke/logs/app.log
+
+  package-check:
+    needs: test
+    runs-on: windows-latest
+    timeout-minutes: 20
+    env:
+      QT_QPA_PLATFORM: windows
+      QT_SCALE_FACTOR: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install build tools
+        shell: pwsh
+        run: |
+          python -m venv .venv
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          .venv/Scripts/python -m pip install -e '.[dev]'
+      - name: Build onefile CI executable without OAuth credentials
+        shell: pwsh
+        run: .venv/Scripts/python -m PyInstaller --noconfirm --onefile --windowed --name DesktopCalendar-CI --paths src --collect-data googleapiclient --collect-data tzdata --hidden-import keyring.backends.Windows --distpath .local/ci-dist --specpath .local run.py
+      - name: Validate packaged tray, buttons, resize and settings
+        shell: pwsh
+        run: .venv/Scripts/python scripts/verify_executable.py .local/ci-dist/DesktopCalendar-CI.exe
+      - name: Upload packaged-test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: packaged-ui-evidence
+          path: .local/exe-validation/
+
+  release-artifact:
+    if: github.event_name == 'workflow_dispatch' && inputs.build_release
+    needs: [test, package-check]
+    runs-on: windows-latest
+    timeout-minutes: 20
+    env:
+      QT_QPA_PLATFORM: windows
+      QT_SCALE_FACTOR: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install build tools
+        shell: pwsh
+        run: |
+          python -m venv .venv
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          .venv/Scripts/python -m pip install -e '.[dev]'
+      - name: Materialize app registration for release only
+        shell: pwsh
+        env:
+          GOOGLE_DESKTOP_OAUTH_JSON: ${{ secrets.GOOGLE_DESKTOP_OAUTH_JSON }}
+        run: |
+          .venv/Scripts/python -c "import os; from pathlib import Path; from desktop_calendar.services.oauth_config import load_client_config; value=os.environ.get('GOOGLE_DESKTOP_OAUTH_JSON'); assert value, 'Configure GOOGLE_DESKTOP_OAUTH_JSON repository secret'; path=Path('src/desktop_calendar/resources/oauth_client.json'); path.write_text(value, encoding='utf-8'); load_client_config(path)"
+      - name: Build release
+        shell: pwsh
+        run: .venv/Scripts/python -m PyInstaller --noconfirm --distpath release DesktopCalendar-release.spec
+      - name: Verify OAuth resource and packaged interactions
+        shell: pwsh
+        run: .venv/Scripts/python scripts/verify_executable.py release/DesktopCalendar.exe --require-oauth
+      - name: Upload verified executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: DesktopCalendar-Windows
+          path: release/DesktopCalendar.exe
+          if-no-files-found: error
+      - name: Remove materialized registration
+        if: always()
+        shell: pwsh
+        run: .venv/Scripts/python -c "from pathlib import Path; Path('src/desktop_calendar/resources/oauth_client.json').unlink(missing_ok=True)"

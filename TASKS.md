@@ -6,6 +6,7 @@
 - Acceptance Criteria: 실제 마우스 press/move/release로 크기 변경, 최소 크기 준수, 재실행 복원, 캘린더 버튼과 충돌 없음.
 - Tests: tests/test_resize.py, Windows 네이티브/배율별 실행 및 전체 회귀.
 - Dependencies: T7.
+- 결과: 기존 코드에서 7개 드래그 테스트 실패 확인 → 수정 후 통과. Windows 100%/150% 네이티브 입력 이벤트로 검사했고 배포 EXE에서도 하단 드래그 및 저장 검증 통과.
 
 ## T9 — Windows 앱 CI 및 검증된 배포 아티팩트
 - Goal / Reason: 기존 워크플로는 관리 규칙 파일만 검사하여 기능/빌드를 검증하지 못했음.
@@ -13,6 +14,7 @@
 - Acceptance Criteria: PR/push에서 단위/통합/Windows UI 테스트·정적 검사·개발 EXE 실행 검증; 수동 배포는 테스트 성공 및 OAuth 설정 검증 후에만 아티팩트 제공.
 - Tests: 워크플로 구성 검사, 로컬에서 동일 검증 명령 수행. 원격 Actions 실행 결과는 별도 확인.
 - Dependencies: T8, 배포에는 저장소 secret GOOGLE_DESKTOP_OAUTH_JSON 설정 필요.
+- 결과: 로컬 Windows Python 3.13, 100%/150% 각각 전체 37개 테스트 통과. actionlint 워크플로 검사 통과. CI용 onefile(인증 설정 미포함)과 배포 onefile(설정 포함)의 트레이/버튼/드래그/설정/저장 검사 통과. 원격 GitHub Actions 실행·Python 3.12 러너 결과는 아직 없음.
 
 ## T7 — 트레이 복원 후 버튼 조작 시 창이 사라지는 오류
 - Goal / Reason: 트레이 복원 및 자식 대화상자 조작 중 최하단 배치 방지.
