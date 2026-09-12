@@ -1,5 +1,19 @@
 # v0.1 구현 작업
 
+## T8 — 테두리 드래그 크기 조절
+- Goal / Reason: 작은 우하단 손잡이에만 의존하던 UI를 아래/좌우/위 테두리와 모서리에서 조절 가능하게 수정.
+- Scope: 드래그 입력 처리, 최소 크기, 조절 중 창 배치, 위치/크기 저장 및 UI 회귀 테스트.
+- Acceptance Criteria: 실제 마우스 press/move/release로 크기 변경, 최소 크기 준수, 재실행 복원, 캘린더 버튼과 충돌 없음.
+- Tests: tests/test_resize.py, Windows 네이티브/배율별 실행 및 전체 회귀.
+- Dependencies: T7.
+
+## T9 — Windows 앱 CI 및 검증된 배포 아티팩트
+- Goal / Reason: 기존 워크플로는 관리 규칙 파일만 검사하여 기능/빌드를 검증하지 못했음.
+- Scope: 별도 GitHub Actions 워크플로, 로컬과 CI 공통 검증 스크립트, UI/배포 검증, 안내 문서.
+- Acceptance Criteria: PR/push에서 단위/통합/Windows UI 테스트·정적 검사·개발 EXE 실행 검증; 수동 배포는 테스트 성공 및 OAuth 설정 검증 후에만 아티팩트 제공.
+- Tests: 워크플로 구성 검사, 로컬에서 동일 검증 명령 수행. 원격 Actions 실행 결과는 별도 확인.
+- Dependencies: T8, 배포에는 저장소 secret GOOGLE_DESKTOP_OAUTH_JSON 설정 필요.
+
 ## T7 — 트레이 복원 후 버튼 조작 시 창이 사라지는 오류
 - Goal / Reason: 트레이 복원 및 자식 대화상자 조작 중 최하단 배치 방지.
 - Scope: MainWindow의 지연 배치/활성화 처리 및 UI 회귀 테스트, 배포 EXE 갱신.

@@ -13,7 +13,6 @@ from PySide6.QtWidgets import (
     QListWidgetItem,
     QMenu,
     QPushButton,
-    QSizeGrip,
     QSystemTrayIcon,
     QVBoxLayout,
     QWidget,
@@ -28,6 +27,7 @@ from desktop_calendar.services.oauth_config import OAuthConfigurationError, load
 from desktop_calendar.services.startup_service import StartupService
 from desktop_calendar.services.sync_service import SyncService
 from desktop_calendar.ui.calendar_widget import CalendarWidget
+from desktop_calendar.ui.resize_handles import ResizeHandles
 from desktop_calendar.ui.settings_dialog import SettingsDialog
 
 logger = logging.getLogger("desktop_calendar")
@@ -90,7 +90,7 @@ class MainWindow(QWidget):
         self.setMinimumSize(350, 420)
         self.setWindowIcon(app_icon())
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(14, 12, 14, 8)
+        layout.setContentsMargins(14, 12, 14, 14)
         header = QHBoxLayout()
         brand = QLabel("DESKTOP / CALENDAR")
         brand.setObjectName("brand")
@@ -118,11 +118,12 @@ class MainWindow(QWidget):
         self.status.setWordWrap(True)
         layout.addWidget(self.status)
         footer = QHBoxLayout()
-        hint = QLabel("상단을 끌어 이동 · 우측 아래에서 크기 조절")
+        hint = QLabel("상단을 끌어 이동 · 테두리를 끌어 크기 조절")
         hint.setObjectName("muted")
         footer.addWidget(hint, 1)
-        footer.addWidget(QSizeGrip(self))
+        footer.addSpacing(20)
         layout.addLayout(footer)
+        self.resize_handles = ResizeHandles(self)
         self.save_timer = QTimer(self)
         self.save_timer.setSingleShot(True)
         self.save_timer.timeout.connect(self.save_geometry)
@@ -247,7 +248,12 @@ class MainWindow(QWidget):
 
     def lower_if_idle(self):
         # Recheck at execution time: focus may have moved to our own dialog/menu.
-        if self.quitting or not self.isVisible() or self.isActiveWindow():
+        if (
+            self.quitting
+            or not self.isVisible()
+            or self.isActiveWindow()
+            or self.property("resizing")
+        ):
             return
         if QApplication.activePopupWidget() or QApplication.activeModalWidget():
             return
@@ -426,6 +432,8 @@ class MainWindow(QWidget):
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
+        if hasattr(self, "resize_handles"):
+            self.resize_handles.update()
         if hasattr(self, "save_timer"):
             self.save_timer.start(400)
 

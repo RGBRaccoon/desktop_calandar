@@ -1,6 +1,6 @@
 import os
 
-os.environ["QT_QPA_PLATFORM"] = "offscreen"
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from datetime import date
 from unittest.mock import Mock, patch
