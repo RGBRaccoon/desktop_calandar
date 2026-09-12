@@ -4,6 +4,8 @@ Windows 10/11용 Google Calendar 읽기 전용 바탕화면 위젯입니다. 별
 
 ## 실행
 
+트레이 복원 후 버튼 조작 시 창이 뒤로 내려가는 문제를 수정한 최신 파일은 `release-fixed/DesktopCalendar.exe`입니다. 기존 앱을 트레이에서 종료한 뒤 이 파일을 실행하세요.
+
 배포 빌드는 `release/DesktopCalendar.exe` 하나로 실행합니다. Python 설치가 필요하지 않습니다. 시작할 때 내부 라이브러리를 임시 폴더에 풀기 때문에 첫 실행은 잠시 걸릴 수 있습니다.
 
 **현재 배포 상태:** 앱 소유자의 Desktop OAuth 설정을 포함한 `release/DesktopCalendar.exe`를 생성했습니다. 설정 포함 여부와 Windows 실행·정상 종료를 검증했습니다. 실제 Google 로그인과 동의는 사용자 계정으로 확인해야 합니다. 기존 `dist/DesktopCalendar/DesktopCalendar.exe`는 이전 개발 빌드이므로 새 `release` 파일을 사용하세요.

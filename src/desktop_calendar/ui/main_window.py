@@ -81,6 +81,10 @@ class MainWindow(QWidget):
         self.quitting = False
         self.last_sync = ""
         self.events = []
+        self.lower_timer = QTimer(self)
+        self.lower_timer.setSingleShot(True)
+        self.lower_timer.setInterval(250)
+        self.lower_timer.timeout.connect(self.lower_if_idle)
         self.setWindowTitle("Desktop Calendar")
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Tool)
         self.setMinimumSize(350, 420)
@@ -239,8 +243,17 @@ class MainWindow(QWidget):
         if datetime.now(self.zone).date() != self.last_date:
             self.last_date = datetime.now(self.zone).date()
             self.render()
-        if not self.isActiveWindow() and self.isVisible():
-            lower_window(int(self.winId()))
+        self.lower_if_idle()
+
+    def lower_if_idle(self):
+        # Recheck at execution time: focus may have moved to our own dialog/menu.
+        if self.quitting or not self.isVisible() or self.isActiveWindow():
+            return
+        if QApplication.activePopupWidget() or QApplication.activeModalWidget():
+            return
+        if any(child.isWindow() and child.isVisible() for child in self.findChildren(QWidget)):
+            return
+        lower_window(int(self.winId()))
 
     def run_task(self, task, callback):
         if self.worker is not None:
@@ -418,15 +431,20 @@ class MainWindow(QWidget):
 
     def changeEvent(self, event):
         super().changeEvent(event)
-        if event.type() == QEvent.Type.ActivationChange and not self.isActiveWindow():
-            QTimer.singleShot(0, lambda: lower_window(int(self.winId())))
+        if event.type() == QEvent.Type.ActivationChange:
+            if self.isActiveWindow():
+                self.lower_timer.stop()
+            else:
+                self.lower_timer.start()
 
     def showEvent(self, event):
         super().showEvent(event)
-        QTimer.singleShot(0, lambda: lower_window(int(self.winId())))
+        self.lower_timer.start()
 
     def reveal(self):
         self.showNormal()
+        # showEvent must not undo an explicit tray restore on the next event-loop turn.
+        self.lower_timer.stop()
         self.raise_()
         self.activateWindow()
 

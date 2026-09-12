@@ -5,6 +5,7 @@ __pycache__/
 build/
 dist/
 release/
+release-fixed/
 *.egg-info/
 *.db
 client_secret*.json

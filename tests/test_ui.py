@@ -3,12 +3,12 @@ import os
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 from datetime import date
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 from zoneinfo import ZoneInfo
 
 from PySide6.QtCore import QElapsedTimer
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QPushButton
+from PySide6.QtWidgets import QApplication, QDialog, QPushButton
 
 from desktop_calendar.models.event import Event
 from desktop_calendar.repositories.event_repository import EventRepository
@@ -16,6 +16,52 @@ from desktop_calendar.services.settings_service import SettingsService
 from desktop_calendar.ui.calendar_widget import CalendarWidget
 from desktop_calendar.ui.main_window import MainWindow
 from desktop_calendar.ui.settings_dialog import SettingsDialog
+
+
+def test_tray_reveal_does_not_queue_lowering(tmp_path):
+    app = QApplication.instance() or QApplication([])
+    window = MainWindow(
+        SettingsService(tmp_path / "config.json"),
+        EventRepository(tmp_path / "cache.db"),
+        Mock(),
+        auto_sync=False,
+    )
+    try:
+        with patch("desktop_calendar.ui.main_window.lower_window") as lower:
+            window.reveal()
+            app.processEvents()
+            QTest.qWait(350)
+            lower.assert_not_called()
+    finally:
+        window.tray.hide()
+        window.quitting = True
+        window.close()
+
+
+def test_settings_dialog_protects_parent_from_periodic_lowering(tmp_path):
+    app = QApplication.instance() or QApplication([])
+    window = MainWindow(
+        SettingsService(tmp_path / "config.json"),
+        EventRepository(tmp_path / "cache.db"),
+        Mock(),
+        auto_sync=False,
+    )
+    dialog = QDialog(window)
+    try:
+        window.reveal()
+        dialog.show()
+        app.processEvents()
+        with (
+            patch.object(window, "isActiveWindow", return_value=False),
+            patch("desktop_calendar.ui.main_window.lower_window") as lower,
+        ):
+            window.tick()
+            lower.assert_not_called()
+    finally:
+        dialog.close()
+        window.tray.hide()
+        window.quitting = True
+        window.close()
 
 
 def test_calendar_has_42_cells_and_overflow(tmp_path):
@@ -34,6 +80,31 @@ def test_calendar_has_42_cells_and_overflow(tmp_path):
     assert cell.isHidden()
     widget.close()
     app.processEvents()
+
+
+def test_delayed_lowering_rechecks_focus_and_preserves_idle_behavior(tmp_path):
+    app = QApplication.instance() or QApplication([])
+    window = MainWindow(
+        SettingsService(tmp_path / "config.json"),
+        EventRepository(tmp_path / "cache.db"),
+        Mock(),
+        auto_sync=False,
+    )
+    try:
+        window.reveal()
+        app.processEvents()
+        with patch("desktop_calendar.ui.main_window.lower_window") as lower:
+            with patch.object(window, "isActiveWindow", return_value=True):
+                window.lower_timer.start()
+                QTest.qWait(350)
+                lower.assert_not_called()
+            with patch.object(window, "isActiveWindow", return_value=False):
+                window.lower_if_idle()
+                lower.assert_called_once_with(int(window.winId()))
+    finally:
+        window.tray.hide()
+        window.quitting = True
+        window.close()
 
 
 def test_window_restores_geometry_and_month_navigation(tmp_path):
