@@ -1,9 +1,10 @@
 import logging
 import sqlite3
 from datetime import date, datetime
+from pathlib import Path
 
-from PySide6.QtCore import QEvent, Qt, QThread, QTimer, Signal
-from PySide6.QtGui import QColor, QFont, QIcon, QPainter, QPixmap
+from PySide6.QtCore import QEvent, QRectF, Qt, QThread, QTimer, Signal
+from PySide6.QtGui import QColor, QFont, QIcon, QImage, QPainter, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
     QDialog,
@@ -21,6 +22,11 @@ from tzlocal import get_localzone
 
 from desktop_calendar.infrastructure.windows_api import fit_geometry, lower_window
 from desktop_calendar.models.event import visible_dates
+from desktop_calendar.services.background_service import (
+    import_background,
+    read_background,
+    remove_managed_background,
+)
 from desktop_calendar.services.calendar_service import GoogleCalendarService
 from desktop_calendar.services.google_auth_service import LoginRequired
 from desktop_calendar.services.oauth_config import OAuthConfigurationError, load_client_config
@@ -31,6 +37,36 @@ from desktop_calendar.ui.resize_handles import ResizeHandles
 from desktop_calendar.ui.settings_dialog import SettingsDialog
 
 logger = logging.getLogger("desktop_calendar")
+
+
+class BackgroundCanvas(QWidget):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.color = QColor("#151c27")
+        self.image = QImage()
+        self.opacity = 0.8
+        self.brightness = 0.6
+        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        painter = QPainter(self)
+        painter.fillRect(self.rect(), self.color)
+        if self.image.isNull():
+            return
+        scale = max(self.width() / self.image.width(), self.height() / self.image.height())
+        width, height = self.width() / scale, self.height() / scale
+        source = QRectF(
+            (self.image.width() - width) / 2,
+            (self.image.height() - height) / 2,
+            width,
+            height,
+        )
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+        painter.setOpacity(self.opacity)
+        painter.drawImage(QRectF(self.rect()), self.image, source)
+        painter.setOpacity(self.opacity * (1 - self.brightness))
+        painter.fillRect(self.rect(), QColor("black"))
 
 
 def app_icon():
@@ -81,6 +117,7 @@ class MainWindow(QWidget):
         self.quitting = False
         self.last_sync = ""
         self.events = []
+        self.background_image = QImage()
         self.lower_timer = QTimer(self)
         self.lower_timer.setSingleShot(True)
         self.lower_timer.setInterval(250)
@@ -89,6 +126,8 @@ class MainWindow(QWidget):
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Tool)
         self.setMinimumSize(350, 420)
         self.setWindowIcon(app_icon())
+        self.background_canvas = BackgroundCanvas(self)
+        self.background_canvas.lower()
         layout = QVBoxLayout(self)
         layout.setContentsMargins(14, 12, 14, 14)
         header = QHBoxLayout()
@@ -177,20 +216,30 @@ class MainWindow(QWidget):
         custom = self.config["background"]
         if custom and QColor(custom).isValid():
             bg = QColor(custom).name()
+        self.background_color = QColor(bg)
+        self.background_image = QImage()
+        if self.config["background_image"]:
+            try:
+                self.background_image = read_background(Path(self.config["background_image"]))
+            except (OSError, ValueError):
+                self.status.setText("배경 이미지를 읽지 못해 기본 배경을 표시합니다.")
         fg, muted, cell, border = (
             ("#e6edf7", "#8e9eb4", "#1c2634", "#293648")
             if dark
             else ("#17243a", "#65758b", "#ffffff", "#e0e5ed")
         )
+        if not self.background_image.isNull():
+            cell = "rgba(28, 38, 52, 150)" if dark else "rgba(255, 255, 255, 165)"
         self.setStyleSheet(f"""
-            QWidget {{ background: {bg}; color: {fg}; font-family: 'Segoe UI', '맑은 고딕'; font-size: {self.config["font_size"]}pt; }}
+            QWidget {{ background: transparent; color: {fg}; font-family: 'Segoe UI', '맑은 고딕'; font-size: {self.config["font_size"]}pt; }}
+            QDialog, QMenu, QScrollArea, QComboBox, QAbstractSpinBox, QListWidget {{ background: {bg}; }}
             QLabel {{ background: transparent; }}
             QLabel#brand {{ color: {muted}; font-size: 9pt; font-weight: 600; }}
             QLabel#monthTitle {{ font-size: 25pt; font-weight: 600; padding: 12px 0; }}
             QLabel#muted, QLabel#weekday {{ color: {muted}; font-size: 8pt; }}
             QLabel#weekday {{ padding: 8px 0; }}
             QFrame#dayCell {{ background: {cell}; border: 1px solid {border}; border-radius: 5px; }}
-            QFrame#dayCell[outside='true'] {{ background: {bg}; }}
+            QFrame#dayCell[outside='true'] {{ background: transparent; }}
             QLabel#today {{ color: #78a9ff; font-weight: bold; }}
             QPushButton {{ border: 1px solid {border}; border-radius: 5px; padding: 5px 9px; }}
             QPushButton:hover {{ background: {border}; }}
@@ -198,6 +247,13 @@ class MainWindow(QWidget):
             QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox, QListWidget {{ border: 1px solid {border}; padding: 4px; }}
         """)
         self.setWindowOpacity(self.config["window"]["opacity"])
+        self.background_canvas.color = self.background_color
+        self.background_canvas.image = self.background_image
+        self.background_canvas.opacity = self.config["image_opacity"]
+        self.background_canvas.brightness = self.config["image_brightness"]
+        self.background_canvas.setGeometry(self.rect())
+        self.background_canvas.lower()
+        self.background_canvas.update()
 
     def selected_calendars(self):
         calendars = self.config["calendars"]
@@ -329,15 +385,35 @@ class MainWindow(QWidget):
         dialog = SettingsDialog(self.config, self)
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return
+        old = self.config
+        old_background = old["background_image"]
         new = dialog.config
+        imported_background = None
+        if new["background_image"] and new["background_image"] != self.config["background_image"]:
+            try:
+                imported_background = import_background(
+                    Path(new["background_image"]), self.settings.path.parent
+                )
+                new["background_image"] = str(imported_background)
+            except (OSError, ValueError) as error:
+                self.status.setText(str(error))
+                return
         if new["startup"] != self.config["startup"]:
             try:
                 StartupService().set_enabled(new["startup"])
             except OSError:
+                if imported_background:
+                    remove_managed_background(imported_background, self.settings.path.parent)
                 self.status.setText("Windows 자동 실행 설정을 저장하지 못했습니다.")
                 return
         self.config = new
-        self.save_config()
+        if not self.save_config():
+            self.config = old
+            if imported_background:
+                remove_managed_background(imported_background, self.settings.path.parent)
+            return
+        if old_background and old_background != new["background_image"]:
+            remove_managed_background(Path(old_background), self.settings.path.parent)
         self.apply_appearance()
         self.sync_timer.start(self.config["sync_minutes"] * 60000)
         self.render()
@@ -398,8 +474,10 @@ class MainWindow(QWidget):
     def save_config(self):
         try:
             self.settings.save(self.config)
+            return True
         except OSError:
             self.status.setText("설정을 저장하지 못했습니다. 저장 위치 권한을 확인하세요.")
+            return False
 
     def save_geometry(self):
         rect = self.geometry()
@@ -432,6 +510,9 @@ class MainWindow(QWidget):
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
+        if hasattr(self, "background_canvas"):
+            self.background_canvas.setGeometry(self.rect())
+            self.background_canvas.lower()
         if hasattr(self, "resize_handles"):
             self.resize_handles.update()
         if hasattr(self, "save_timer"):

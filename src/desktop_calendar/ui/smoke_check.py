@@ -1,8 +1,10 @@
 """Offline UI checks executed inside the packaged EXE, using isolated test data."""
 
 from datetime import date
+from pathlib import Path
 
 from PySide6.QtCore import QPoint, Qt, QTimer
+from PySide6.QtGui import QColor, QImage, QPainter
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QPushButton
 
@@ -34,17 +36,66 @@ def check_interactions(window):
     if window.height() != before + 30:
         raise AssertionError("Bottom edge drag failed")
     observed = []
+    source = window.settings.path.parent / "smoke-background.png"
+    test_image = QImage(160, 90, QImage.Format.Format_RGB32)
+    painter = QPainter(test_image)
+    painter.fillRect(0, 0, 80, 90, QColor("#347590"))
+    painter.fillRect(80, 0, 80, 90, QColor("#8f4f67"))
+    painter.end()
+    if not test_image.save(str(source)):
+        raise AssertionError("Background fixture write failed")
 
     def dismiss():
         dialog = QApplication.activeModalWidget()
         observed.append(isinstance(dialog, SettingsDialog) and dialog.isVisible())
-        if dialog:
+        if isinstance(dialog, SettingsDialog):
+            dialog.config["background_image"] = str(source)
+            dialog.image_opacity.setValue(0.8)
+            dialog.image_brightness.setValue(0.7)
+            dialog.finish("save")
+        elif dialog:
             dialog.close()
 
     QTimer.singleShot(100, dismiss)
     QTest.mouseClick(window.settings_button, Qt.MouseButton.LeftButton)
     if observed != [True] or not window.isVisible():
         raise AssertionError("Settings interaction failed")
+    saved_image = Path(window.settings.load()["background_image"])
+    if saved_image == source or not saved_image.is_file():
+        raise AssertionError("Background was not imported")
+    source.unlink()
+    window.apply_appearance()
+    if window.background_image.isNull():
+        raise AssertionError("Background did not survive source removal")
+    QTest.qWait(100)
+    if not all(
+        cell.isVisible() and cell.width() > 0 and cell.height() > 0
+        for cell in window.calendar.cells
+    ):
+        raise AssertionError("Calendar cells disappeared after background update")
+    screen = window.screen()
+    if screen is not None:
+        capture = screen.grabWindow(int(window.winId())).toImage()
+        scale_x = capture.width() / window.width()
+        scale_y = capture.height() / window.height()
+        origin = window.title.mapTo(window, QPoint(0, 0))
+        left = max(0, int(origin.x() * scale_x))
+        top = max(0, int(origin.y() * scale_y))
+        right = min(capture.width(), int((origin.x() + window.title.width()) * scale_x))
+        bottom = min(capture.height(), int((origin.y() + window.title.height()) * scale_y))
+        light_pixels = sum(
+            1
+            for y in range(top, bottom)
+            for x in range(left, right)
+            if min(
+                capture.pixelColor(x, y).red(),
+                capture.pixelColor(x, y).green(),
+                capture.pixelColor(x, y).blue(),
+            )
+            > 180
+        )
+        if light_pixels < 20:
+            raise AssertionError("Background covered the month title")
     window.save_geometry()
     if window.settings.load()["window"]["height"] != window.height():
         raise AssertionError("Resize persistence failed")

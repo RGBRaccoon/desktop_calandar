@@ -1,6 +1,8 @@
 import copy
+from pathlib import Path
 
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QCheckBox,
     QColorDialog,
@@ -8,15 +10,20 @@ from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QDoubleSpinBox,
+    QFileDialog,
     QFormLayout,
     QHBoxLayout,
     QLabel,
     QListWidget,
     QListWidgetItem,
     QPushButton,
+    QScrollArea,
     QSpinBox,
     QVBoxLayout,
+    QWidget,
 )
+
+from desktop_calendar.services.background_service import read_background
 
 
 class SettingsDialog(QDialog):
@@ -57,6 +64,30 @@ class SettingsDialog(QDialog):
         color_row.addWidget(color)
         color_row.addWidget(reset)
         form.addRow("배경", color_row)
+        image_row = QHBoxLayout()
+        choose = QPushButton("배경 이미지 선택…")
+        choose.setObjectName("chooseBackgroundImage")
+        choose.clicked.connect(self.choose_image)
+        remove = QPushButton("이미지 제거")
+        remove.clicked.connect(self.remove_image)
+        image_row.addWidget(choose)
+        image_row.addWidget(remove)
+        form.addRow("이미지", image_row)
+        self.preview = QLabel("선택한 이미지 없음")
+        self.preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.preview.setFixedHeight(72)
+        form.addRow(self.preview)
+        self.image_opacity = QDoubleSpinBox()
+        self.image_opacity.setRange(0, 1)
+        self.image_opacity.setSingleStep(0.1)
+        self.image_opacity.setValue(config["image_opacity"])
+        form.addRow("이미지 불투명도", self.image_opacity)
+        self.image_brightness = QDoubleSpinBox()
+        self.image_brightness.setRange(0, 1)
+        self.image_brightness.setSingleStep(0.1)
+        self.image_brightness.setValue(config["image_brightness"])
+        form.addRow("이미지 밝기", self.image_brightness)
+        self.update_preview()
         self.font_size = QSpinBox()
         self.font_size.setRange(8, 18)
         self.font_size.setValue(config["font_size"])
@@ -65,12 +96,18 @@ class SettingsDialog(QDialog):
         self.limit.setRange(1, 5)
         self.limit.setValue(config["event_limit"])
         form.addRow("날짜별 일정 수", self.limit)
-        layout.addLayout(form)
+        container = QWidget()
+        container.setLayout(form)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setWidget(container)
+        layout.addWidget(scroll, 3)
         layout.addWidget(QLabel("Google Calendar · 읽기 전용"))
         description = QLabel("Google 로그인 후 표시할 캘린더를 선택하세요.")
         description.setWordWrap(True)
         layout.addWidget(description)
         self.calendars = QListWidget()
+        self.calendars.setMinimumHeight(70)
         selected = config["calendar_ids"]
         for calendar in config["calendars"]:
             item = QListWidgetItem(calendar.get("summary", calendar["id"]))
@@ -82,7 +119,7 @@ class SettingsDialog(QDialog):
                 else Qt.CheckState.Unchecked
             )
             self.calendars.addItem(item)
-        layout.addWidget(self.calendars)
+        layout.addWidget(self.calendars, 1)
         login = QPushButton("Google 로그인 / 계정 변경")
         login.clicked.connect(lambda: self.finish("login"))
         logout = QPushButton("로그아웃 · 이 PC의 일정 캐시 삭제")
@@ -101,6 +138,45 @@ class SettingsDialog(QDialog):
         if color.isValid():
             self.config["background"] = color.name()
 
+    def choose_image(self):
+        path, _ = QFileDialog.getOpenFileName(
+            self, "배경 이미지 선택", "", "이미지 (*.png *.jpg *.jpeg)"
+        )
+        if path:
+            try:
+                read_background(Path(path))
+            except (ValueError, OSError) as error:
+                self.preview.clear()
+                self.preview.setText(str(error))
+                self.preview.setWordWrap(True)
+                return
+            self.config["background_image"] = path
+            self.update_preview()
+
+    def remove_image(self):
+        self.config["background_image"] = ""
+        self.update_preview()
+
+    def update_preview(self):
+        self.preview.clear()
+        path = self.config["background_image"]
+        if path:
+            try:
+                image = read_background(Path(path))
+                self.preview.setPixmap(
+                    QPixmap.fromImage(image).scaled(
+                        220,
+                        72,
+                        Qt.AspectRatioMode.KeepAspectRatio,
+                        Qt.TransformationMode.SmoothTransformation,
+                    )
+                )
+                return
+            except (ValueError, OSError):
+                self.preview.setText("저장된 이미지를 찾을 수 없습니다.")
+                return
+        self.preview.setText("선택한 이미지 없음")
+
     def finish(self, action):
         self.action = action
         self.config.update(
@@ -110,6 +186,8 @@ class SettingsDialog(QDialog):
             theme="dark" if self.theme.currentIndex() == 0 else "light",
             font_size=self.font_size.value(),
             event_limit=self.limit.value(),
+            image_opacity=self.image_opacity.value(),
+            image_brightness=self.image_brightness.value(),
         )
         self.config["window"]["opacity"] = self.opacity.value()
         if self.calendars.count():

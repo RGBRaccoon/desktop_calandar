@@ -1,14 +1,14 @@
-# Desktop Calendar v0.1.1
+# Desktop Calendar v0.1.2
 
 Windows 10/11용 Google Calendar 읽기 전용 바탕화면 위젯입니다. 별도 중계 서버 없이 Google API에 직접 연결합니다.
 
 ## 실행
 
-최신 파일은 `release/DesktopCalendar-0.1.1.exe`입니다. 아래·위·좌우 테두리와 모서리를 끌어 크기를 조절할 수 있습니다. 기존 앱을 트레이에서 종료한 뒤 이 파일을 실행하세요. 이전 EXE를 다른 곳에 복사했다면 해당 복사본도 교체해야 합니다.
+최신 파일은 `release/DesktopCalendar-0.1.2.exe`입니다. 아래·위·좌우 테두리와 모서리를 끌어 크기를 조절할 수 있고, 설정에서 JPG/PNG 배경 이미지를 선택할 수 있습니다. 기존 앱을 트레이에서 종료한 뒤 이 파일을 실행하세요. 이전 EXE를 다른 곳에 복사했다면 해당 복사본도 교체해야 합니다.
 
 배포 EXE 하나로 실행하며 Python 설치가 필요하지 않습니다. 시작할 때 내부 라이브러리를 임시 폴더에 풀기 때문에 첫 실행은 잠시 걸릴 수 있습니다.
 
-**현재 배포 상태:** Desktop OAuth 설정을 포함한 v0.1.1의 Windows 100%/150% 배율에서 EXE 내부 조작 검증을 통과했습니다. 실제 Google 로그인과 동의는 사용자 계정으로 확인해야 합니다. `dist`와 `release-fixed` 및 버전 없는 기존 EXE는 이전 빌드입니다.
+**현재 배포 상태:** Desktop OAuth 설정을 포함한 v0.1.2의 Windows 100%/150% 배율에서 EXE 내부 조작 검증을 통과했습니다. 실제 Google 로그인과 동의는 사용자 계정으로 확인해야 합니다. `dist`와 `release-fixed` 및 이전 버전 EXE는 이전 빌드입니다.
 
 소스 실행 (PowerShell, 프로젝트 폴더):
 
@@ -47,7 +47,7 @@ python -m venv .venv
 - 상단 글자를 끌어 이동하고 테두리·모서리를 끌어 크기를 조절합니다. 드래그 중 커서가 방향 화살표로 바뀝니다.
 - `‹` / `›`로 월 이동, **오늘**로 현재 월 이동, `↻`로 새로고침합니다.
 - 날짜를 클릭하면 생략된 일정을 포함한 해당 날짜의 목록을 확인합니다.
-- 설정에서 테마, 배경색, 창 투명도, 글자 크기, 표시 개수, 시작 요일, 동기화 주기, Windows 자동 실행을 변경합니다.
+- 설정에서 테마, 배경색, JPG/PNG 배경 이미지, 이미지 밝기·불투명도, 창 투명도, 글자 크기, 표시 개수, 시작 요일, 동기화 주기, Windows 자동 실행을 변경합니다. 선택한 이미지는 앱 데이터 폴더에 복사되어 원본 파일을 옮기거나 삭제해도 유지됩니다.
 - 창 닫기는 트레이로 숨기며 **트레이 → 종료**로 종료합니다. 창 우클릭 메뉴에서도 설정·종료가 가능합니다.
 - 일반 창 뒤로 배치하며 WorkerW에 삽입하지 않습니다. Win+D로 숨겨진 경우 트레이의 **달력 표시**로 복원합니다. 모든 Windows 상태에서 바탕화면에 계속 표시되는 Explorer 내장 위젯 방식은 아닙니다.
 - 오프라인에서는 이전에 조회한 동일 날짜 범위·캘린더 선택의 캐시를 표시합니다. 처음 방문한 달은 비어 있을 수 있습니다.
@@ -69,6 +69,7 @@ python -m venv .venv
 
 ```text
 %APPDATA%/DesktopCalendar/config.json
+%APPDATA%/DesktopCalendar/backgrounds/*.png
 %LOCALAPPDATA%/DesktopCalendar/calendar.db
 %LOCALAPPDATA%/DesktopCalendar/logs/app.log
 ```
@@ -86,7 +87,7 @@ python -m venv .venv
 .venv/Scripts/python -m PyInstaller --noconfirm DesktopCalendar.spec
 ```
 
-`--smoke-test`는 Google 연결 없이 트레이 복원, 월 이동 버튼, 아래 테두리 드래그, 설정 창 열기/닫기, 크기 저장을 검사하고 종료합니다. 실패 시 종료 코드 1을 반환합니다. `--data-dir`로 일반 사용자 데이터와 분리하세요. 자동 테스트에서는 실제 계정 로그인이나 Run 레지스트리를 변경하지 않습니다.
+`--smoke-test`는 Google 연결 없이 트레이 복원, 월 이동 버튼, 아래 테두리 드래그, 설정 창, 배경 이미지 복사·렌더링, 날짜 셀과 제목의 실제 화면 표시, 크기 저장을 검사하고 종료합니다. 실패 시 종료 코드 1을 반환합니다. `--data-dir`로 일반 사용자 데이터와 분리하세요. 자동 테스트에서는 실제 계정 로그인이나 Run 레지스트리를 변경하지 않습니다.
 
 ## CI와 배포 검증
 
@@ -102,10 +103,10 @@ python -m venv .venv
 $env:QT_QPA_PLATFORM = 'windows'
 $env:QT_SCALE_FACTOR = '1.5'
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/validate.ps1
-.venv/Scripts/python scripts/verify_executable.py release/DesktopCalendar-0.1.1.exe --require-oauth
+.venv/Scripts/python scripts/verify_executable.py release/DesktopCalendar-0.1.2.exe --require-oauth
 ```
 
-현재 로컬 Windows Python 3.13에서 두 배율의 37개 테스트와 배포 EXE 검증을 수행했습니다. 워크플로는 actionlint 검사를 통과했지만 GitHub에 push하여 실행한 원격 CI 결과는 아직 없습니다. CI 배포에는 저장소 secret 등록이 필요합니다. 자동 검증은 Qt 입력 이벤트를 사용하며 실제 Google 동의, OS 재부팅, 다른 사용자 세션의 셸/IME/장치별 동작까지 보증하지 않습니다.
+현재 로컬 Windows Python 3.13에서 두 배율의 43개 테스트와 배포 EXE 검증을 수행했습니다. 워크플로는 actionlint 검사를 통과했지만 GitHub에 push하여 실행한 원격 CI 결과는 아직 없습니다. CI 배포에는 저장소 secret 등록이 필요합니다. 자동 검증은 Qt 입력 이벤트와 실제 창 픽셀 캡처를 사용하며 실제 Google 동의, OS 재부팅, 다른 사용자 세션의 셸/IME/장치별 동작까지 보증하지 않습니다.
 
 실제 Google OAuth 동의·동기화, 재부팅 자동 실행, Explorer 재시작, 절전 복귀, 모니터 연결/해제, Win+D는 실제 사용자 세션에서 최종 확인해야 합니다. 일정 생성·수정·삭제·알림은 v0.1에 포함하지 않습니다.
 

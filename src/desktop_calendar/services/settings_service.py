@@ -1,5 +1,6 @@
 import copy
 import json
+import math
 import os
 from pathlib import Path
 from tempfile import NamedTemporaryFile
@@ -8,6 +9,9 @@ DEFAULTS = {
     "window": {"x": 80, "y": 80, "width": 490, "height": 640, "opacity": 0.96},
     "theme": "dark",
     "background": "",
+    "background_image": "",
+    "image_opacity": 0.8,
+    "image_brightness": 0.6,
     "font_size": 10,
     "event_limit": 3,
     "first_weekday": 0,
@@ -61,9 +65,16 @@ class SettingsService:
             config["theme"] = "dark"
         if config["first_weekday"] not in (0, 6):
             config["first_weekday"] = 0
-        for key in ("background",):
+        for key in ("background", "background_image"):
             if not isinstance(config[key], str):
                 config[key] = ""
+        for key in ("image_opacity", "image_brightness"):
+            value = config[key]
+            config[key] = (
+                max(0.0, min(1.0, value))
+                if type(value) in (int, float) and math.isfinite(value)
+                else DEFAULTS[key]
+            )
         if not isinstance(config["calendars"], list):
             config["calendars"] = []
         config["calendars"] = [

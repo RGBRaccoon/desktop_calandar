@@ -83,7 +83,13 @@ def main():
                 check_interactions(window)
                 if args.screenshot:
                     args.screenshot.parent.mkdir(parents=True, exist_ok=True)
-                    if not window.grab().save(str(args.screenshot)):
+                    screen = window.screen()
+                    capture = (
+                        screen.grabWindow(int(window.winId()))
+                        if screen is not None
+                        else window.grab()
+                    )
+                    if not capture.save(str(args.screenshot)):
                         raise OSError("Screenshot write failed")
                 logger.info("Smoke interactions passed")
             except Exception as error:  # noqa: BLE001 -- self-test reports failure via process status

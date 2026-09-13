@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "desktop-calendar"
-version = "0.1.1"
+version = "0.1.2"
 description = "Windows desktop Google Calendar widget"
 requires-python = ">=3.12"
 dependencies = ["PySide6==6.8.3", "google-api-python-client>=2.160,<3", "google-auth-oauthlib>=1.2,<2", "keyring>=25,<26", "tzdata>=2025.1", "tzlocal>=5,<6"]
