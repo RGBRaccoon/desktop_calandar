@@ -1,6 +1,6 @@
 <!--
 AUTO-GENERATED / DO NOT EDIT DIRECTLY
-Source: RGBRaccoon/dev-agent-standard@116d51a19e5ad89f831bb6f16ae64e08734ac722
+Source: RGBRaccoon/dev-agent-standard@f7ff8557e7407039d9c1506e04f2e178cdddbc67
 Project-specific rules belong in PROJECT_RULES.md.
 -->
 
@@ -20,7 +20,20 @@ Codex는 이 파일을 프로젝트 지침으로 사용한다. Claude Code는 `C
 7. 관리 파일에 `AUTO-GENERATED / DO NOT EDIT DIRECTLY`가 있으면 직접 수정하지 않는다.
 8. 프로젝트별 추가 지침은 `PROJECT_RULES.md`를 확인하고 함께 준수한다.
 
-## 1. Task 정의
+## 1. 언어 및 산출물 규칙
+
+기본 작업 언어는 **한국어**다. 사용자가 별도로 다른 언어를 요구하거나 프로젝트의 기존 규칙이 명시적으로 다른 언어를 요구하지 않는 한 다음 규칙을 따른다.
+
+- 사용자에게 전달하는 설명, 작업 결과 요약, 진행 보고는 한국어로 작성한다.
+- 새로 작성하는 Markdown 문서, README, Spec, Plan, Task, ADR 등 개발 문서는 한국어를 기본으로 한다.
+- GitHub Issue, Pull Request 제목/본문, 코드 리뷰 의견 등 Agent가 작성하는 협업용 텍스트는 한국어를 기본으로 한다.
+- Commit message는 Conventional Commit prefix(`feat:`, `fix:` 등)는 유지하되 설명 부분은 한국어를 기본으로 한다. 예: `feat: 주문 체결 로직 추가`.
+- 코드 주석과 docstring은 프로젝트 기존 스타일과 일관성을 우선하되, 별도 기준이 없으면 한국어로 작성한다.
+- 변수명, 함수명, 클래스명, 파일명, API/라이브러리/프로토콜/표준 명칭, CLI 명령어 등 기술 식별자는 관례에 따라 영어 원문을 유지한다.
+- 외부 공개 프로젝트의 기여 가이드나 기존 문서 언어가 영어를 요구하면 해당 프로젝트 규칙을 우선한다.
+- 번역으로 의미가 불명확해지는 전문용어는 영어 원문을 함께 표기하거나 그대로 사용한다.
+
+## 2. Task 정의
 
 Task는 **하나의 독립적으로 검증 가능한 변경 단위**다.
 각 Task에는 반드시 다음이 있어야 한다.
@@ -40,7 +53,7 @@ Task는 **하나의 독립적으로 검증 가능한 변경 단위**다.
 - 구현 중 변경 범위가 예상보다 커짐
 - 서로 다른 책임의 모듈을 동시에 크게 변경해야 함
 
-## 2. 작업 순서
+## 3. 작업 순서
 
 각 Task는 아래 순서를 따른다.
 
@@ -56,7 +69,7 @@ Task는 **하나의 독립적으로 검증 가능한 변경 단위**다.
 10. Acceptance Criteria 재확인
 11. 모든 검증이 성공한 경우 Commit
 
-## 3. 테스트 규칙
+## 4. 테스트 규칙
 
 - 기능 변경에는 가능한 한 Unit Test를 추가한다.
 - 모듈 간 상호작용이 바뀌면 Integration Test를 추가한다.
@@ -76,7 +89,7 @@ pyright
 
 실제 저장소에 정의된 명령이 있다면 그 명령을 우선한다.
 
-## 4. Commit 규칙
+## 5. Commit 규칙
 
 - 기본 단위는 **완료된 Task 1개 = Commit 1개**다.
 - RED/GREEN/REFACTOR 단계마다 기계적으로 Commit하지 않는다.
@@ -93,7 +106,7 @@ pyright
 - `docs:` 문서 변경
 - `chore:` 개발환경/자동화/기타 관리 작업
 
-## 5. 안전 및 변경 범위
+## 6. 안전 및 변경 범위
 
 - 사용자가 요구하지 않은 destructive operation을 수행하지 않는다.
 - secret, credential, token을 코드나 로그에 기록하지 않는다.
@@ -101,7 +114,7 @@ pyright
 - 기존 public API나 데이터 구조를 바꿔야 한다면 영향 범위를 먼저 확인한다.
 - 불확실한 요구사항을 임의로 확정하여 큰 구조 변경을 하지 않는다.
 
-## 6. 완료 조건
+## 7. 완료 조건
 
 Task는 다음을 모두 만족할 때만 완료다.
 
